@@ -52,7 +52,7 @@ jobs:
         REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
         
         # LangSmith Configuration (optional)
-        LANGSMITH_PROJECT: ${{ secrets.LANGSMITH_TRACING }}
+        LANGSMITH_TRACING: ${{ secrets.LANGSMITH_TRACING }}
         LANGSMITH_ENDPOINT: ${{ secrets.LANGSMITH_ENDPOINT }}
         LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
         LANGSMITH_PROJECT: ${{ secrets.LANGSMITH_PROJECT }}
