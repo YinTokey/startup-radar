@@ -191,7 +191,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchPosts(1) // Reset to page 1 when filters change
-  }, [selectedSubreddit, sortBy])
+  }, [selectedSubreddit, sortBy, fetchPosts])
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
