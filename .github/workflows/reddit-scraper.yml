@@ -42,8 +42,8 @@ jobs:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         
         # Supabase Configuration
-        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         
         # Reddit API Configuration
@@ -52,14 +52,14 @@ jobs:
         REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
         
         # LangSmith Configuration (optional)
-        LANGCHAIN_TRACING_V2: ${{ secrets.LANGCHAIN_TRACING_V2 }}
-        LANGCHAIN_ENDPOINT: ${{ secrets.LANGCHAIN_ENDPOINT }}
-        LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
-        LANGCHAIN_PROJECT: ${{ secrets.LANGCHAIN_PROJECT }}
+        LANGSMITH_PROJECT: ${{ secrets.LANGSMITH_TRACING }}
+        LANGSMITH_ENDPOINT: ${{ secrets.LANGSMITH_ENDPOINT }}
+        LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+        LANGSMITH_PROJECT: ${{ secrets.LANGSMITH_PROJECT }}
         
         # Job Configuration
         SUBREDDITS: ${{ github.event.inputs.subreddits || 'saas,sideprojects,startup,startupideas' }}
-        POST_LIMIT: ${{ github.event.inputs.limit || '25' }}
+        POST_LIMIT: ${{ github.event.inputs.limit || '10' }}
       run: node scripts/reddit-scraper.js
 
     - name: Upload logs as artifacts
