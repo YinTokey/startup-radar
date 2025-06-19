@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { TrendingUp, MessageCircle, ArrowUp, Clock, Search } from "lucide-react"
+import { TrendingUp, MessageCircle, ArrowUp, Clock, Search, ChevronLeft, ChevronRight } from "lucide-react"
 
 interface Post {
   id: string
@@ -41,34 +41,80 @@ interface PostWithAnalytics extends Post {
   post_analytics?: PostAnalytics[]
 }
 
+interface Pagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNext: boolean
+  hasPrev: boolean
+}
+
+interface ApiResponse {
+  data: PostWithAnalytics[]
+  pagination: Pagination
+  error?: string
+}
+
 export default function Dashboard() {
   const [posts, setPosts] = useState<PostWithAnalytics[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedSubreddit, setSelectedSubreddit] = useState("all")
   const [sortBy, setSortBy] = useState("trending_score")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false
+  })
+  const [error, setError] = useState<string | null>(null)
 
-  const fetchPosts = useCallback(async () => {
+  const fetchPosts = useCallback(async (page = 1) => {
     try {
       setLoading(true)
-      const res = await fetch(
-        `/api/posts?subreddit=${encodeURIComponent(selectedSubreddit)}&sortBy=${encodeURIComponent(sortBy)}`,
-      )
+      setError(null)
+      
+      const params = new URLSearchParams({
+        subreddit: selectedSubreddit,
+        sortBy,
+        page: page.toString()
+      })
+      
+      const res = await fetch(`/api/posts?${params}`)
       if (!res.ok) throw new Error("Network response was not ok")
 
-      const { data } = (await res.json()) as { data: Post[] }
-      setPosts(data || mockPosts)
+      const response = (await res.json()) as ApiResponse
+      
+      if (response.error) {
+        setError(response.error)
+        setPosts([])
+      } else {
+        setPosts(response.data || [])
+        setPagination(response.pagination)
+        setCurrentPage(page)
+      }
     } catch (error) {
       console.error("Error fetching posts:", error)
-      setPosts(mockPosts) // fallback demo data
+      setError("Failed to fetch posts")
+      setPosts([])
     } finally {
       setLoading(false)
     }
   }, [selectedSubreddit, sortBy])
 
   useEffect(() => {
-    fetchPosts()
-  }, [fetchPosts])
+    fetchPosts(1) // Reset to page 1 when filters change
+  }, [selectedSubreddit, sortBy])
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      fetchPosts(newPage)
+    }
+  }
 
   const filteredPosts = posts.filter(
     (post) =>
@@ -98,7 +144,7 @@ export default function Dashboard() {
     return `${Math.floor(diffInHours / 24)}d ago`
   }
 
-  if (loading) {
+  if (loading && currentPage === 1) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -120,9 +166,11 @@ export default function Dashboard() {
               <h1 className="text-2xl font-bold text-gray-900">StartupRadar Dashboard</h1>
             </div>
             <div className="flex items-center gap-4">
-              <Badge variant="secondary">{filteredPosts.length} Posts Analyzed</Badge>
-              <Button onClick={fetchPosts} variant="outline" size="sm">
-                Refresh
+              <Badge variant="secondary">
+                {pagination.total} Total Posts
+              </Badge>
+              <Button onClick={() => fetchPosts(currentPage)} variant="outline" size="sm" disabled={loading}>
+                {loading ? "Loading..." : "Refresh"}
               </Button>
             </div>
           </div>
@@ -170,6 +218,21 @@ export default function Dashboard() {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Error State */}
+        {error && (
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-800">{error}</p>
+            <Button 
+              onClick={() => fetchPosts(currentPage)} 
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+            >
+              Try Again
+            </Button>
+          </div>
+        )}
 
         {/* Posts Grid */}
         <div className="grid gap-6">
@@ -284,96 +347,73 @@ export default function Dashboard() {
           })}
         </div>
 
-        {filteredPosts.length === 0 && (
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-4">
+            <Button
+              variant="outline"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={!pagination.hasPrev || loading}
+              size="sm"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Previous
+            </Button>
+            
+            <div className="flex items-center gap-2">
+              {/* Show page numbers */}
+              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                const pageNumber = Math.max(1, currentPage - 2) + i;
+                if (pageNumber > pagination.totalPages) return null;
+                
+                return (
+                  <Button
+                    key={pageNumber}
+                    variant={pageNumber === currentPage ? "default" : "outline"}
+                    onClick={() => handlePageChange(pageNumber)}
+                    disabled={loading}
+                    size="sm"
+                    className="w-10"
+                  >
+                    {pageNumber}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={!pagination.hasNext || loading}
+              size="sm"
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        )}
+
+        {/* Pagination Info */}
+        {pagination.total > 0 && (
+          <div className="mt-4 text-center text-sm text-gray-600">
+            Showing {((currentPage - 1) * pagination.limit) + 1} to {Math.min(currentPage * pagination.limit, pagination.total)} of {pagination.total} posts
+          </div>
+        )}
+
+        {/* Empty State */}
+        {filteredPosts.length === 0 && !loading && !error && (
           <div className="text-center py-12">
             <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No posts found</h3>
-            <p className="text-gray-600">Try adjusting your search or filters</p>
+            <p className="text-gray-600">
+              {pagination.total === 0 
+                ? "No posts have been analyzed yet. Run the Reddit scraper to populate data."
+                : "Try adjusting your search or filters"
+              }
+            </p>
           </div>
         )}
       </div>
     </div>
   )
 }
-
-// Mock data for demo purposes
-const mockPosts: PostWithAnalytics[] = [
-  {
-    id: "1",
-    reddit_id: "post_1",
-    subreddit: "saas",
-    title: "Built a SaaS for automated customer support - $2k MRR in 3 months",
-    content: "After struggling with customer support at my previous startup...",
-    author: "techfounder",
-    upvotes: 234,
-    comments: 45,
-    url: "https://reddit.com/r/saas/post_1",
-    created_at: "2024-01-15T10:30:00Z",
-    post_analytics: [{
-      id: "analytics_1",
-      post_id: "1",
-      sentiment_score: 0.8,
-      relevance_score: 0.95,
-      innovation_score: 0.85,
-      market_viability: 0.88,
-      trending_score: 279,
-      ai_summary: "A founder shares their success story of building an automated customer support SaaS that reached $2k MRR in 3 months. The tool uses AI to handle common customer queries and has shown promising growth metrics.",
-      tags: ["SaaS", "Customer Support", "AI", "Revenue"],
-      prompt_id: "startup-analysis-2",
-      prompt_version: "v2.1",
-      analyzed_at: "2024-01-15T11:00:00Z"
-    }]
-  },
-  {
-    id: "2",
-    reddit_id: "post_2", 
-    subreddit: "sideprojects",
-    title: "Weekend project: AI-powered meal planning app",
-    content: "Spent the weekend building a meal planning app that uses AI...",
-    author: "weekendbuilder",
-    upvotes: 156,
-    comments: 28,
-    url: "https://reddit.com/r/sideprojects/post_2",
-    created_at: "2024-01-15T08:15:00Z",
-    post_analytics: [{
-      id: "analytics_2",
-      post_id: "2",
-      sentiment_score: 0.7,
-      relevance_score: 0.85,
-      innovation_score: 0.75,
-      market_viability: 0.65,
-      trending_score: 184,
-      ai_summary: "Developer showcases a weekend project - an AI-powered meal planning app that generates personalized meal plans based on dietary preferences and available ingredients.",
-      tags: ["AI", "Mobile App", "Health", "Weekend Project"],
-      prompt_id: "startup-analysis-2",
-      prompt_version: "v2.1",
-      analyzed_at: "2024-01-15T09:00:00Z"
-    }]
-  },
-  {
-    id: "3",
-    reddit_id: "post_3",
-    subreddit: "startupideas", 
-    title: "Idea: Platform for remote team building activities",
-    content: "With remote work becoming permanent, there is a gap in team building...",
-    author: "remoteworker",
-    upvotes: 89,
-    comments: 67,
-    url: "https://reddit.com/r/startupideas/post_3",
-    created_at: "2024-01-15T06:45:00Z",
-    post_analytics: [{
-      id: "analytics_3",
-      post_id: "3",
-      sentiment_score: 0.6,
-      relevance_score: 0.9,
-      innovation_score: 0.7,
-      market_viability: 0.8,
-      trending_score: 156,
-      ai_summary: "Startup idea for a platform dedicated to remote team building activities. The concept addresses the growing need for virtual team engagement as remote work becomes more prevalent.",
-      tags: ["Remote Work", "Team Building", "Platform", "B2B"],
-      prompt_id: "startup-analysis-2", 
-      prompt_version: "v2.1",
-      analyzed_at: "2024-01-15T07:30:00Z"
-    }]
-  },
-]
