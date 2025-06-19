@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { TrendingUp, MessageCircle, ArrowUp, Clock, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react"
+import { TrendingUp, MessageSquare, ArrowUp, Clock, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react"
 
 interface Post {
   id: string
@@ -70,11 +70,16 @@ export default function Dashboard() {
     hasPrev: false
   })
   const [error, setError] = useState<string | null>(null)
-  const [chatOpen, setChatOpen] = useState(false)
+  const [isRealTimeUpdate, setIsRealTimeUpdate] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState<string>('disconnected')
 
-  const fetchPosts = useCallback(async (page = 1) => {
+  const fetchPosts = useCallback(async (page = 1, isRealTime = false) => {
     try {
-      setLoading(true)
+      if (!isRealTime) {
+        setLoading(true)
+      } else {
+        setIsRealTimeUpdate(true)
+      }
       setError(null)
       
       const params = new URLSearchParams({
@@ -95,6 +100,11 @@ export default function Dashboard() {
         setPosts(response.data || [])
         setPagination(response.pagination)
         setCurrentPage(page)
+        
+        if (isRealTime) {
+          // Show a brief indicator that data was updated
+          console.log('Real-time update: New posts detected')
+        }
       }
     } catch (error) {
       console.error("Error fetching posts:", error)
@@ -102,8 +112,82 @@ export default function Dashboard() {
       setPosts([])
     } finally {
       setLoading(false)
+      if (isRealTime) {
+        setTimeout(() => setIsRealTimeUpdate(false), 2000) // Show indicator for 2 seconds
+      }
     }
   }, [selectedSubreddit, sortBy])
+
+  // Set up Server-Sent Events for real-time updates
+  useEffect(() => {
+    console.log('Setting up SSE connection for real-time updates...')
+    
+    const eventSource = new EventSource('/api/events')
+    
+    eventSource.onopen = () => {
+      console.log('SSE: Connection opened')
+      setConnectionStatus('connected')
+    }
+    
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        console.log('SSE: Received message:', data)
+        
+        switch (data.type) {
+          case 'connection':
+            setConnectionStatus('connected')
+            break
+            
+          case 'subscription_status':
+            setConnectionStatus(data.status)
+            console.log('SSE: Subscription status:', data.status)
+            break
+            
+          case 'posts_change':
+            console.log('SSE: Posts table changed:', data.eventType)
+            if (data.eventType === 'INSERT') {
+              // New post added, refresh current page
+              fetchPosts(currentPage, true)
+            }
+            break
+            
+          case 'analytics_change':
+            console.log('SSE: Analytics table changed:', data.eventType)
+            if (data.eventType === 'INSERT') {
+              // New analytics added, refresh current page
+              fetchPosts(currentPage, true)
+            }
+            break
+            
+          case 'error':
+            console.error('SSE: Server error:', data.error)
+            setConnectionStatus('error')
+            break
+            
+          case 'ping':
+            // Keep-alive ping, no action needed
+            break
+            
+          default:
+            console.log('SSE: Unknown message type:', data.type)
+        }
+      } catch (error) {
+        console.error('SSE: Error parsing message:', error)
+      }
+    }
+    
+    eventSource.onerror = (error) => {
+      console.error('SSE: Connection error:', error)
+      setConnectionStatus('error')
+    }
+
+    // Cleanup on unmount
+    return () => {
+      console.log('SSE: Closing connection')
+      eventSource.close()
+    }
+  }, [currentPage, fetchPosts])
 
   useEffect(() => {
     fetchPosts(1) // Reset to page 1 when filters change
@@ -137,6 +221,21 @@ export default function Dashboard() {
     return `${Math.floor(diffInHours / 24)}d ago`
   }
 
+  const getConnectionStatusColor = (status: string) => {
+    switch (status) {
+      case 'SUBSCRIBED':
+      case 'connected':
+        return 'bg-green-50 text-green-700 border-green-200'
+      case 'error':
+      case 'CHANNEL_ERROR':
+        return 'bg-red-50 text-red-700 border-red-200'
+      case 'TIMED_OUT':
+        return 'bg-yellow-50 text-yellow-700 border-yellow-200'
+      default:
+        return 'bg-gray-50 text-gray-700 border-gray-200'
+    }
+  }
+
   if (loading && currentPage === 1) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
@@ -166,6 +265,14 @@ export default function Dashboard() {
             <div className="flex items-center gap-4">
               <Badge variant="secondary" className="bg-slate-100 text-slate-700 border-slate-200">
                 {pagination.total} Posts Analyzed
+              </Badge>
+              {isRealTimeUpdate && (
+                <Badge className="bg-green-100 text-green-700 border-green-200 animate-pulse">
+                  Updating...
+                </Badge>
+              )}
+              <Badge variant="outline" className={`text-xs ${getConnectionStatusColor(connectionStatus)}`}>
+                Real-time: {connectionStatus}
               </Badge>
               <Button 
                 onClick={() => fetchPosts(currentPage)} 
@@ -331,7 +438,7 @@ export default function Dashboard() {
                         <span className="font-medium">{post.upvotes}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <MessageCircle className="h-4 w-4" />
+                        <MessageSquare className="h-4 w-4" />
                         <span className="font-medium">{post.comments}</span>
                       </div>
                       {hasAnalytics && (
