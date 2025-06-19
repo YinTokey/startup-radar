@@ -17,14 +17,14 @@ export class LangSmithAdmin {
   // Prompt Template Management
   async getPrompts() {
     try {
-      console.log('Attempting to fetch prompts from LangChain Hub...')
+      console.log('Attempting to fetch latest prompts from LangChain Hub...')
       
       // Try LangChain Hub approach first (recommended method)
       try {
-        console.log('Pulling prompt from LangChain Hub: startup-analysis-2')
+        console.log('Pulling latest prompt from LangChain Hub: startup-analysis-2')
         const hubPrompt = await hub.pull("startup-analysis-2")
         
-        console.log('Successfully pulled prompt from hub')
+        console.log('Successfully pulled latest prompt from hub')
         console.log('Hub prompt type:', typeof hubPrompt, hubPrompt.constructor.name)
         console.log('Hub prompt keys:', Object.keys(hubPrompt))
         
@@ -34,54 +34,65 @@ export class LangSmithAdmin {
           prompt_name: 'startup-analysis-2',
           prompt: hubPrompt, // Store the actual LangChain prompt object
           langchain_prompt: hubPrompt, // Keep reference to original
-          tags: ['hub', 'startup-analysis'],
+          tags: ['hub', 'startup-analysis', 'latest'],
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           metadata: {
-            version: '1',
-            description: 'Startup radar analysis prompt from LangChain Hub',
+            version: 'latest',
+            description: 'Latest startup radar analysis prompt from LangChain Hub',
             is_active: true,
             experiment_id: null,
             is_langchain_prompt: true, // Flag to indicate this is a LangChain prompt object
           },
         }
         
-        console.log('LangChain Hub prompt ready for direct use')
+        console.log('LangChain Hub latest prompt ready for direct use')
         return [convertedPrompt]
         
       } catch (hubError) {
         console.log('LangChain Hub approach failed:', hubError.message)
-        console.log('Falling back to direct LangSmith API...')
+        console.log('Falling back to direct LangSmith API for latest prompts...')
       }
       
-      // Fallback to direct LangSmith API
+      // Fallback to direct LangSmith API - fetch latest prompts ordered by creation time
       try {
         const promptsList = []
         const iterator = this.client.listPrompts({
-          limit: 1,
+          limit: 10, // Get more prompts to find the latest
           is_archived: false,
+          order: 'desc', // Order by creation time descending (latest first)
         })
         
-        console.log('Got iterator, attempting to collect prompts...')
+        console.log('Got iterator, attempting to collect latest prompts...')
         let count = 0
         for await (const prompt of iterator) {
           promptsList.push(prompt)
           count++
           console.log(`Collected ${count} prompts...`)
-          if (count >= 1) break // Safety limit - only fetch first prompt
+          if (count >= 10) break // Get up to 10 to find the latest active one
         }
         
         console.log(`Successfully collected ${promptsList.length} prompts`)
-        return promptsList.map(this.mapPrompt.bind(this))
+        
+        // Sort by updated_at to get the most recent version
+        const sortedPrompts = promptsList.sort((a, b) => 
+          new Date(b.updated_at || b.created_at).getTime() - 
+          new Date(a.updated_at || a.created_at).getTime()
+        )
+        
+        console.log('Prompts sorted by latest update time')
+        
+        return sortedPrompts.map(this.mapPrompt.bind(this))
         
       } catch (iteratorError) {
         console.log('Iterator approach failed, trying original method:', iteratorError.message)
       }
       
-      // Fallback to original approach
+      // Fallback to original approach with better ordering
       const prompts = await this.client.listPrompts({
-        limit: 1,
+        limit: 10,
         is_archived: false,
+        order: 'desc', // Latest first
       })
       console.log('Prompts type:', typeof prompts, prompts.constructor.name)
       
@@ -104,9 +115,9 @@ export class LangSmithAdmin {
             count++
             console.log(`Processed ${count} prompts...`)
             
-            // Safety limit - only fetch first prompt
-            if (count >= 1) {
-              console.log('Reached limit of 1 prompt, stopping...')
+            // Get up to 10 prompts to find the latest
+            if (count >= 10) {
+              console.log('Reached limit of 10 prompts, stopping...')
               break
             }
           }
@@ -123,9 +134,23 @@ export class LangSmithAdmin {
         return []
       }
       
-      return promptsArray.map(this.mapPrompt.bind(this))
+      // Sort by updated_at/created_at to get latest version first
+      const sortedPrompts = promptsArray.sort((a, b) => {
+        const dateA = new Date(a.updated_at || a.created_at).getTime()
+        const dateB = new Date(b.updated_at || b.created_at).getTime()
+        return dateB - dateA // Latest first
+      })
+      
+      console.log('Found latest prompts:', sortedPrompts.map(p => ({
+        id: p.id,
+        name: p.prompt_name,
+        version: p.metadata?.version,
+        updated: p.updated_at || p.created_at
+      })))
+      
+      return sortedPrompts.map(this.mapPrompt.bind(this))
     } catch (error) {
-      console.error("Error fetching prompts:", error)
+      console.error("Error fetching latest prompts:", error)
       return []
     }
   }

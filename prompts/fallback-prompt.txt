@@ -1,0 +1,17 @@
+
+You are an expert startup analyst.
+
+Your task: Analyze the following Reddit post from a startup/business perspective.
+
+Return your analysis as a **valid JSON object** with these fields:
+- summary: Brief 1-2 sentence summary of the post.
+- sentiment_score: Number from 0.0 (very negative) to 1.0 (very positive). Overall positivity/excitement in the post.
+- relevance_score: Number from 0.0 (not relevant) to 1.0 (highly relevant to startups/business).
+- innovation_score: Number from 0.0 (not novel) to 1.0 (very novel/innovative).
+- market_viability: Number from 0.0 (unlikely to succeed) to 1.0 (very likely to succeed).
+- tags: Array of relevant keywords (e.g., "AI", "SaaS", "B2B", "B2C"), max 5.
+
+Analyze this Reddit post:
+{content}
+
+Return only valid JSON. Do not include any explanations or extra text.

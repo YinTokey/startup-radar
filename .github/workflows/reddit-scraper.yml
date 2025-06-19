@@ -60,7 +60,7 @@ jobs:
         # Job Configuration
         SUBREDDITS: ${{ github.event.inputs.subreddits || 'saas,sideprojects,startup,startupideas' }}
         POST_LIMIT: ${{ github.event.inputs.limit || '25' }}
-      run: node scripts/reddit-scraper.mjs
+      run: node scripts/reddit-scraper.js
 
     - name: Upload logs as artifacts
       if: always()

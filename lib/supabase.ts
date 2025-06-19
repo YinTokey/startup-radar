@@ -36,20 +36,13 @@ export type Database = {
           author: string
           upvotes: number
           comments: number
-          trending_score: number
-          sentiment_score: number
-          ai_summary: string
-          relevance_score: number
+          url: string
           created_at: string
           updated_at: string
-          tags: string[]
-          url: string
           metadata?: {
             reddit_created_utc?: number
             reddit_score?: number
             reddit_upvote_ratio?: number
-            innovation_score?: number
-            market_viability?: number
             [key: string]: unknown
           }
         }
@@ -62,20 +55,13 @@ export type Database = {
           author: string
           upvotes: number
           comments: number
-          trending_score: number
-          sentiment_score: number
-          ai_summary: string
-          relevance_score: number
+          url: string
           created_at?: string
           updated_at?: string
-          tags?: string[]
-          url: string
           metadata?: {
             reddit_created_utc?: number
             reddit_score?: number
             reddit_upvote_ratio?: number
-            innovation_score?: number
-            market_viability?: number
             [key: string]: unknown
           }
         }
@@ -88,22 +74,65 @@ export type Database = {
           author?: string
           upvotes?: number
           comments?: number
-          trending_score?: number
-          sentiment_score?: number
-          ai_summary?: string
-          relevance_score?: number
+          url?: string
           created_at?: string
           updated_at?: string
-          tags?: string[]
-          url?: string
           metadata?: {
             reddit_created_utc?: number
             reddit_score?: number
             reddit_upvote_ratio?: number
-            innovation_score?: number
-            market_viability?: number
             [key: string]: unknown
           }
+        }
+      }
+      post_analytics: {
+        Row: {
+          id: string
+          post_id: string
+          sentiment_score: number
+          relevance_score: number
+          innovation_score: number
+          market_viability: number
+          trending_score: number
+          ai_summary: string
+          tags: string[]
+          prompt_id: string
+          prompt_version: string
+          analyzed_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          post_id: string
+          sentiment_score: number
+          relevance_score: number
+          innovation_score: number
+          market_viability: number
+          trending_score: number
+          ai_summary: string
+          tags?: string[]
+          prompt_id: string
+          prompt_version: string
+          analyzed_at: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          post_id?: string
+          sentiment_score?: number
+          relevance_score?: number
+          innovation_score?: number
+          market_viability?: number
+          trending_score?: number
+          ai_summary?: string
+          tags?: string[]
+          prompt_id?: string
+          prompt_version?: string
+          analyzed_at?: string
+          created_at?: string
+          updated_at?: string
         }
       }
       prompts: {
@@ -136,62 +165,6 @@ export type Database = {
           performance_metrics?: PerformanceMetrics | null
           created_at?: string
           updated_at?: string
-        }
-      }
-      api_usage: {
-        Row: {
-          id: string
-          endpoint: string
-          prompt_id: string
-          tokens_used: number
-          cost: number
-          latency: number
-          created_at: string
-          metadata?: {
-            model?: string
-            post_id?: string
-            prompt_tokens?: number
-            completion_tokens?: number
-            success?: boolean
-            error?: string
-            [key: string]: unknown
-          }
-        }
-        Insert: {
-          id?: string
-          endpoint: string
-          prompt_id: string
-          tokens_used: number
-          cost: number
-          latency: number
-          created_at?: string
-          metadata?: {
-            model?: string
-            post_id?: string
-            prompt_tokens?: number
-            completion_tokens?: number
-            success?: boolean
-            error?: string
-            [key: string]: unknown
-          }
-        }
-        Update: {
-          id?: string
-          endpoint?: string
-          prompt_id?: string
-          tokens_used?: number
-          cost?: number
-          latency?: number
-          created_at?: string
-          metadata?: {
-            model?: string
-            post_id?: string
-            prompt_tokens?: number
-            completion_tokens?: number
-            success?: boolean
-            error?: string
-            [key: string]: unknown
-          }
         }
       }
     }
