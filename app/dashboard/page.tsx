@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TrendingUp, MessageCircle, ArrowUp, Clock, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react"
-import { ChatDialog } from "@/components/chat-dialog"
 
 interface Post {
   id: string
@@ -168,15 +167,6 @@ export default function Dashboard() {
               <Badge variant="secondary" className="bg-slate-100 text-slate-700 border-slate-200">
                 {pagination.total} Posts Analyzed
               </Badge>
-              <Button 
-                onClick={() => setChatOpen(true)} 
-                variant="outline" 
-                size="sm"
-                className="flex items-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
-              >
-                <MessageCircle className="h-4 w-4" />
-                AI Assistant
-              </Button>
               <Button 
                 onClick={() => fetchPosts(currentPage)} 
                 variant="outline" 
@@ -434,9 +424,6 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-
-      {/* Chat Dialog */}
-      <ChatDialog open={chatOpen} onOpenChange={setChatOpen} />
     </div>
   )
 }
