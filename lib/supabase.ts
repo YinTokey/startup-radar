@@ -44,6 +44,14 @@ export type Database = {
           updated_at: string
           tags: string[]
           url: string
+          metadata?: {
+            reddit_created_utc?: number
+            reddit_score?: number
+            reddit_upvote_ratio?: number
+            innovation_score?: number
+            market_viability?: number
+            [key: string]: unknown
+          }
         }
         Insert: {
           id?: string
@@ -62,6 +70,14 @@ export type Database = {
           updated_at?: string
           tags?: string[]
           url: string
+          metadata?: {
+            reddit_created_utc?: number
+            reddit_score?: number
+            reddit_upvote_ratio?: number
+            innovation_score?: number
+            market_viability?: number
+            [key: string]: unknown
+          }
         }
         Update: {
           id?: string
@@ -80,6 +96,14 @@ export type Database = {
           updated_at?: string
           tags?: string[]
           url?: string
+          metadata?: {
+            reddit_created_utc?: number
+            reddit_score?: number
+            reddit_upvote_ratio?: number
+            innovation_score?: number
+            market_viability?: number
+            [key: string]: unknown
+          }
         }
       }
       prompts: {
@@ -123,6 +147,15 @@ export type Database = {
           cost: number
           latency: number
           created_at: string
+          metadata?: {
+            model?: string
+            post_id?: string
+            prompt_tokens?: number
+            completion_tokens?: number
+            success?: boolean
+            error?: string
+            [key: string]: unknown
+          }
         }
         Insert: {
           id?: string
@@ -132,6 +165,15 @@ export type Database = {
           cost: number
           latency: number
           created_at?: string
+          metadata?: {
+            model?: string
+            post_id?: string
+            prompt_tokens?: number
+            completion_tokens?: number
+            success?: boolean
+            error?: string
+            [key: string]: unknown
+          }
         }
         Update: {
           id?: string
@@ -141,6 +183,15 @@ export type Database = {
           cost?: number
           latency?: number
           created_at?: string
+          metadata?: {
+            model?: string
+            post_id?: string
+            prompt_tokens?: number
+            completion_tokens?: number
+            success?: boolean
+            error?: string
+            [key: string]: unknown
+          }
         }
       }
     }

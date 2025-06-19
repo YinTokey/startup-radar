@@ -1,0 +1,71 @@
+name: Reddit Startup Monitor
+
+on:
+  schedule:
+    # Run every 4 hours (Reddit posts change frequently)
+    - cron: '0 */4 * * *'
+  workflow_dispatch: # Allow manual triggering
+    inputs:
+      subreddits:
+        description: 'Comma-separated list of subreddits (default: saas,sideprojects,startup,startupideas)'
+        required: false
+        default: 'saas,sideprojects,startup,startupideas'
+      limit:
+        description: 'Number of posts per subreddit (default: 25)'
+        required: false
+        default: '25'
+
+jobs:
+  fetch-and-analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build application
+      run: npm run build
+
+    - name: Run Reddit scraper and AI analysis
+      env:
+        # OpenAI Configuration
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        
+        # Supabase Configuration
+        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        
+        # Reddit API Configuration
+        REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+        REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+        REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
+        
+        # LangSmith Configuration (optional)
+        LANGCHAIN_TRACING_V2: ${{ secrets.LANGCHAIN_TRACING_V2 }}
+        LANGCHAIN_ENDPOINT: ${{ secrets.LANGCHAIN_ENDPOINT }}
+        LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
+        LANGCHAIN_PROJECT: ${{ secrets.LANGCHAIN_PROJECT }}
+        
+        # Job Configuration
+        SUBREDDITS: ${{ github.event.inputs.subreddits || 'saas,sideprojects,startup,startupideas' }}
+        POST_LIMIT: ${{ github.event.inputs.limit || '25' }}
+      run: node scripts/reddit-scraper.mjs
+
+    - name: Upload logs as artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: scraper-logs-${{ github.run_number }}
+        path: logs/
+        retention-days: 7 
