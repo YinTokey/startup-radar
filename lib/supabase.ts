@@ -4,7 +4,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://your-projec
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "your-anon-key"
 
 // Create a single reusable client instance
-export const supabase = createSupabaseClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey)
 
 // Keep the createClient function for backward compatibility if needed
 export function createClient() {
@@ -23,117 +23,68 @@ interface PerformanceMetrics {
   [key: string]: number | undefined
 }
 
-export type Database = {
+// Database Types
+export interface Post {
+  id: string
+  reddit_id: string
+  subreddit: string
+  title: string
+  content: string
+  author: string
+  upvotes: number
+  comments: number
+  url: string
+  metadata?: Record<string, unknown>
+  created_at: string
+}
+
+export interface PostAnalytics {
+  id: string
+  post_id: string
+  sentiment_score: number
+  relevance_score: number
+  innovation_score: number
+  market_viability: number
+  trending_score: number
+  ai_summary: string
+  tags: string[]
+  prompt_id: string
+  prompt_version: string
+  analyzed_at: string
+  created_at: string
+}
+
+export interface ChatMessage {
+  id: string
+  user_ip: string
+  session_id: string
+  message: string
+  response: string
+  role: 'user' | 'assistant'
+  is_user_message: boolean
+  metadata?: Record<string, unknown>
+  tokens_used?: number
+  response_time_ms?: number
+  created_at: string
+}
+
+export interface Database {
   public: {
     Tables: {
       posts: {
-        Row: {
-          id: string
-          reddit_id: string
-          subreddit: string
-          title: string
-          content: string
-          author: string
-          upvotes: number
-          comments: number
-          url: string
-          created_at: string
-          updated_at: string
-          metadata?: {
-            reddit_created_utc?: number
-            reddit_score?: number
-            reddit_upvote_ratio?: number
-            [key: string]: unknown
-          }
-        }
-        Insert: {
-          id?: string
-          reddit_id: string
-          subreddit: string
-          title: string
-          content: string
-          author: string
-          upvotes: number
-          comments: number
-          url: string
-          created_at?: string
-          updated_at?: string
-          metadata?: {
-            reddit_created_utc?: number
-            reddit_score?: number
-            reddit_upvote_ratio?: number
-            [key: string]: unknown
-          }
-        }
-        Update: {
-          id?: string
-          reddit_id?: string
-          subreddit?: string
-          title?: string
-          content?: string
-          author?: string
-          upvotes?: number
-          comments?: number
-          url?: string
-          created_at?: string
-          updated_at?: string
-          metadata?: {
-            reddit_created_utc?: number
-            reddit_score?: number
-            reddit_upvote_ratio?: number
-            [key: string]: unknown
-          }
-        }
+        Row: Post
+        Insert: Omit<Post, "id" | "created_at">
+        Update: Partial<Omit<Post, "id" | "created_at">>
       }
       post_analytics: {
-        Row: {
-          id: string
-          post_id: string
-          sentiment_score: number
-          relevance_score: number
-          innovation_score: number
-          market_viability: number
-          trending_score: number
-          ai_summary: string
-          tags: string[]
-          prompt_id: string
-          prompt_version: string
-          analyzed_at: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          post_id: string
-          sentiment_score: number
-          relevance_score: number
-          innovation_score: number
-          market_viability: number
-          trending_score: number
-          ai_summary: string
-          tags?: string[]
-          prompt_id: string
-          prompt_version: string
-          analyzed_at: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          post_id?: string
-          sentiment_score?: number
-          relevance_score?: number
-          innovation_score?: number
-          market_viability?: number
-          trending_score?: number
-          ai_summary?: string
-          tags?: string[]
-          prompt_id?: string
-          prompt_version?: string
-          analyzed_at?: string
-          created_at?: string
-          updated_at?: string
-        }
+        Row: PostAnalytics
+        Insert: Omit<PostAnalytics, "id" | "created_at">
+        Update: Partial<Omit<PostAnalytics, "id" | "created_at">>
+      }
+      chat: {
+        Row: ChatMessage
+        Insert: Omit<ChatMessage, "id" | "created_at">
+        Update: Partial<Omit<ChatMessage, "id" | "created_at">>
       }
       prompts: {
         Row: {

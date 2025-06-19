@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TrendingUp, MessageCircle, ArrowUp, Clock, Search, ChevronLeft, ChevronRight } from "lucide-react"
+import { ChatDialog } from "@/components/chat-dialog"
 
 interface Post {
   id: string
@@ -72,6 +73,7 @@ export default function Dashboard() {
     hasPrev: false
   })
   const [error, setError] = useState<string | null>(null)
+  const [chatOpen, setChatOpen] = useState(false)
 
   const fetchPosts = useCallback(async (page = 1) => {
     try {
@@ -169,6 +171,15 @@ export default function Dashboard() {
               <Badge variant="secondary">
                 {pagination.total} Total Posts
               </Badge>
+              <Button 
+                onClick={() => setChatOpen(true)} 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <MessageCircle className="h-4 w-4" />
+                AI Chat
+              </Button>
               <Button onClick={() => fetchPosts(currentPage)} variant="outline" size="sm" disabled={loading}>
                 {loading ? "Loading..." : "Refresh"}
               </Button>
@@ -414,6 +425,9 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Chat Dialog */}
+      <ChatDialog open={chatOpen} onOpenChange={setChatOpen} />
     </div>
   )
 }
