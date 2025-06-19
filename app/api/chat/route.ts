@@ -3,6 +3,7 @@ import { ChatOpenAI } from "@langchain/openai"
 import { PromptTemplate } from "@langchain/core/prompts"
 import { StringOutputParser } from "@langchain/core/output_parsers"
 import { supabase } from "@/lib/supabase"
+import { langsmithAdmin } from "@/lib/langsmith-admin"
 
 // Initialize LangChain
 const chatModel = new ChatOpenAI({
@@ -11,7 +12,8 @@ const chatModel = new ChatOpenAI({
   openAIApiKey: process.env.OPENAI_API_KEY,
 })
 
-const chatPromptTemplate = PromptTemplate.fromTemplate(`
+// Fallback prompt template if LangSmith fails
+const fallbackChatPrompt = PromptTemplate.fromTemplate(`
 You are a helpful AI assistant for StartupRadar, a platform that analyzes startup trends from Reddit.
 
 You help users understand:
@@ -28,7 +30,46 @@ User question: {question}
 Assistant response:`)
 
 const parser = new StringOutputParser()
-const chatChain = chatPromptTemplate.pipe(chatModel).pipe(parser)
+
+// Function to get chat prompt from LangSmith
+async function getChatPrompt() {
+  try {
+    console.log('Fetching chat-assistant prompt from LangSmith...')
+    
+    if (langsmithAdmin) {
+      const chatPrompt = await langsmithAdmin.getPromptByName('chat-assistant')
+      
+      if (chatPrompt) {
+        console.log('Successfully loaded chat-assistant prompt from LangSmith', {
+          promptId: chatPrompt.id,
+          version: chatPrompt.metadata?.version,
+          isLangChainPrompt: (chatPrompt.metadata as any)?.is_langchain_prompt
+        })
+        
+        // Check if this is a LangChain prompt object or a template string
+        if ((chatPrompt.metadata as any)?.is_langchain_prompt && (chatPrompt as any).langchain_prompt) {
+          console.log('Using LangChain Hub prompt directly for chat')
+          return (chatPrompt as any).langchain_prompt
+        } else if (typeof chatPrompt.prompt === 'string') {
+          console.log('Using LangSmith template string for chat')
+          return PromptTemplate.fromTemplate(chatPrompt.prompt)
+        } else {
+          console.log('Invalid prompt format, using fallback')
+          return fallbackChatPrompt
+        }
+      } else {
+        console.log('No chat-assistant prompt found, using fallback')
+        return fallbackChatPrompt
+      }
+    } else {
+      console.log('LangSmith admin not available, using fallback prompt')
+      return fallbackChatPrompt
+    }
+  } catch (error) {
+    console.error('Error fetching chat prompt from LangSmith:', error)
+    return fallbackChatPrompt
+  }
+}
 
 function getClientIP(request: NextRequest): string {
   // Try different headers for getting client IP
@@ -64,10 +105,43 @@ export async function POST(request: NextRequest) {
     const userIP = getClientIP(request)
     const startTime = Date.now()
     
+    console.log('Chat request:', { userIP, sessionId, messageLength: message.length })
+    
+    // Get the chat prompt from LangSmith
+    const chatPromptTemplate = await getChatPrompt()
+    
+    // Create the chat chain
+    const chatChain = chatPromptTemplate.pipe(chatModel).pipe(parser)
+    
     // Generate AI response using LangChain
-    const response = await chatChain.invoke({
-      question: message
-    })
+    let chainInput
+    
+    // Handle different input variable formats
+    if (chatPromptTemplate.inputVariables) {
+      const inputVars = chatPromptTemplate.inputVariables
+      console.log('Chat prompt input variables:', inputVars)
+      
+      // Map message to the appropriate input variable
+      if (inputVars.includes('question')) {
+        chainInput = { question: message }
+      } else if (inputVars.includes('message')) {
+        chainInput = { message: message }
+      } else if (inputVars.includes('user_input')) {
+        chainInput = { user_input: message }
+      } else if (inputVars.includes('input')) {
+        chainInput = { input: message }
+      } else {
+        // Use the first input variable
+        chainInput = { [inputVars[0]]: message }
+      }
+    } else {
+      // Fallback to question for template prompts
+      chainInput = { question: message }
+    }
+    
+    console.log('Chat chain input:', Object.keys(chainInput))
+    
+    const response = await chatChain.invoke(chainInput)
     
     const endTime = Date.now()
     const responseTime = endTime - startTime
@@ -75,44 +149,74 @@ export async function POST(request: NextRequest) {
     // Store both user message and AI response in database
     const chatSessionId = sessionId || crypto.randomUUID()
     
+    console.log('Storing messages for session:', chatSessionId)
+    
     // Store user message
-    const { error: userMessageError } = await supabase
+    const userMessageData = {
+      user_ip: userIP,
+      session_id: chatSessionId,
+      message: message,
+      response: '', // Empty for user messages
+      role: 'user' as const,
+      is_user_message: true,
+      metadata: {
+        timestamp: new Date().toISOString()
+      }
+    }
+    
+    console.log('User message data:', JSON.stringify(userMessageData, null, 2))
+    
+    const { data: userData, error: userMessageError } = await supabase
       .from('chat')
-      .insert({
-        user_ip: userIP,
-        session_id: chatSessionId,
-        message: message,
-        response: '', // Empty for user messages
-        role: 'user',
-        is_user_message: true,
-        metadata: {
-          timestamp: new Date().toISOString()
-        }
-      })
+      .insert(userMessageData)
+      .select()
 
     if (userMessageError) {
-      console.error('Error storing user message:', userMessageError)
+      console.error('Error storing user message:', {
+        error: userMessageError,
+        message: userMessageError.message,
+        details: userMessageError.details,
+        hint: userMessageError.hint,
+        code: userMessageError.code
+      })
+    } else {
+      console.log('User message stored successfully:', userData)
     }
 
     // Store AI response
-    const { error: aiResponseError } = await supabase
+    const aiResponseData = {
+      user_ip: userIP,
+      session_id: chatSessionId,
+      message: '', // Empty for AI responses
+      response: response,
+      role: 'assistant' as const,
+      is_user_message: false,
+      response_time_ms: responseTime,
+      metadata: {
+        model: "gpt-4o-mini",
+        prompt_source: "langsmith",
+        prompt_name: "chat-assistant",
+        timestamp: new Date().toISOString()
+      }
+    }
+    
+    console.log('AI response data:', JSON.stringify(aiResponseData, null, 2))
+
+    const { data: aiData, error: aiResponseError } = await supabase
       .from('chat')
-      .insert({
-        user_ip: userIP,
-        session_id: chatSessionId,
-        message: '', // Empty for AI responses
-        response: response,
-        role: 'assistant',
-        is_user_message: false,
-        response_time_ms: responseTime,
-        metadata: {
-          model: "gpt-4o-mini",
-          timestamp: new Date().toISOString()
-        }
-      })
+      .insert(aiResponseData)
+      .select()
 
     if (aiResponseError) {
-      console.error('Error storing AI response:', aiResponseError)
+      console.error('Error storing AI response:', {
+        error: aiResponseError,
+        message: aiResponseError.message,
+        details: aiResponseError.details,
+        hint: aiResponseError.hint,
+        code: aiResponseError.code
+      })
+    } else {
+      console.log('AI response stored successfully:', aiData)
     }
 
     return NextResponse.json({
@@ -122,7 +226,11 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Chat API error:', error)
+    console.error('Chat API error:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
     return NextResponse.json(
       { error: "Failed to process chat message" },
       { status: 500 }

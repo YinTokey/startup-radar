@@ -4,9 +4,8 @@ import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { TrendingUp, MessageCircle, ArrowUp, Clock, Search, ChevronLeft, ChevronRight } from "lucide-react"
+import { TrendingUp, MessageCircle, ArrowUp, Clock, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react"
 import { ChatDialog } from "@/components/chat-dialog"
 
 interface Post {
@@ -60,7 +59,6 @@ interface ApiResponse {
 export default function Dashboard() {
   const [posts, setPosts] = useState<PostWithAnalytics[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
   const [selectedSubreddit, setSelectedSubreddit] = useState("all")
   const [sortBy, setSortBy] = useState("trending_score")
   const [currentPage, setCurrentPage] = useState(1)
@@ -118,16 +116,10 @@ export default function Dashboard() {
     }
   }
 
-  const filteredPosts = posts.filter(
-    (post) =>
-      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (post.post_analytics?.[0]?.ai_summary || '').toLowerCase().includes(searchTerm.toLowerCase()),
-  )
-
   const getSentimentColor = (score: number) => {
-    if (score > 0.6) return "bg-green-100 text-green-800"
-    if (score > 0.3) return "bg-yellow-100 text-yellow-800"
-    return "bg-red-100 text-red-800"
+    if (score > 0.6) return "bg-emerald-50 text-emerald-700 border-emerald-200"
+    if (score > 0.3) return "bg-amber-50 text-amber-700 border-amber-200"
+    return "bg-red-50 text-red-700 border-red-200"
   }
 
   const getSentimentLabel = (score: number) => {
@@ -148,39 +140,50 @@ export default function Dashboard() {
 
   if (loading && currentPage === 1) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
-          <TrendingUp className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading startup insights...</p>
+          <TrendingUp className="h-12 w-12 text-blue-600 animate-pulse mx-auto mb-4" />
+          <p className="text-slate-600 font-medium">Loading startup insights...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
-      <header className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-40">
+        <div className="container mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">StartupRadar Dashboard</h1>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">StartupRadar</h1>
+                <p className="text-sm text-slate-600">AI-Powered Startup Intelligence</p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
-              <Badge variant="secondary">
-                {pagination.total} Total Posts
+              <Badge variant="secondary" className="bg-slate-100 text-slate-700 border-slate-200">
+                {pagination.total} Posts Analyzed
               </Badge>
               <Button 
                 onClick={() => setChatOpen(true)} 
                 variant="outline" 
                 size="sm"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
               >
                 <MessageCircle className="h-4 w-4" />
-                AI Chat
+                AI Assistant
               </Button>
-              <Button onClick={() => fetchPosts(currentPage)} variant="outline" size="sm" disabled={loading}>
+              <Button 
+                onClick={() => fetchPosts(currentPage)} 
+                variant="outline" 
+                size="sm" 
+                disabled={loading}
+                className="border-slate-200 text-slate-700 hover:bg-slate-50"
+              >
                 {loading ? "Loading..." : "Refresh"}
               </Button>
             </div>
@@ -188,22 +191,11 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-6 py-8">
         {/* Filters */}
         <div className="mb-8 flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search posts and summaries..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
           <Select value={selectedSubreddit} onValueChange={setSelectedSubreddit}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-64 bg-white border-slate-200">
               <SelectValue placeholder="Filter by subreddit" />
             </SelectTrigger>
             <SelectContent>
@@ -215,7 +207,7 @@ export default function Dashboard() {
             </SelectContent>
           </Select>
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-64 bg-white border-slate-200">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -232,13 +224,13 @@ export default function Dashboard() {
 
         {/* Error State */}
         {error && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-800">{error}</p>
+          <div className="mb-8 p-6 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-red-800 font-medium">{error}</p>
             <Button 
               onClick={() => fetchPosts(currentPage)} 
               variant="outline" 
               size="sm" 
-              className="mt-2"
+              className="mt-3 border-red-200 text-red-700 hover:bg-red-100"
             >
               Try Again
             </Button>
@@ -246,77 +238,88 @@ export default function Dashboard() {
         )}
 
         {/* Posts Grid */}
-        <div className="grid gap-6">
-          {filteredPosts.map((post) => {
+        <div className="space-y-6">
+          {posts.map((post) => {
             const analytics = post.post_analytics?.[0];
             const hasAnalytics = !!analytics;
             
             return (
-              <Card key={post.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
+              <Card key={post.id} className="group hover:shadow-xl transition-all duration-300 bg-white border-slate-200 hover:border-blue-200">
+                <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline">r/{post.subreddit}</Badge>
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-300 font-medium">
+                          r/{post.subreddit}
+                        </Badge>
                         {hasAnalytics && (
-                          <Badge className={getSentimentColor(analytics.sentiment_score)}>
+                          <Badge className={`border ${getSentimentColor(analytics.sentiment_score)} font-medium`}>
                             {getSentimentLabel(analytics.sentiment_score)}
                           </Badge>
                         )}
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
                           <Clock className="h-3 w-3" />
                           {formatTimeAgo(post.created_at)}
                         </div>
                         {hasAnalytics && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                             {analytics.prompt_version}
                           </Badge>
                         )}
                       </div>
-                      <CardTitle className="text-lg leading-tight mb-2">{post.title}</CardTitle>
-                      <CardDescription className="text-sm">by u/{post.author}</CardDescription>
+                      <CardTitle className="text-xl leading-tight text-slate-900 group-hover:text-blue-900 transition-colors">
+                        {post.title}
+                      </CardTitle>
+                      <CardDescription className="text-slate-600 font-medium">
+                        by u/{post.author}
+                      </CardDescription>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right ml-6">
                       {hasAnalytics ? (
-                        <>
-                          <div className="text-2xl font-bold text-blue-600">{analytics.trending_score}</div>
-                          <div className="text-xs text-gray-500">Trending Score</div>
-                        </>
+                        <div className="space-y-1">
+                          <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            {analytics.trending_score}
+                          </div>
+                          <div className="text-xs text-slate-500 font-medium">Trending Score</div>
+                        </div>
                       ) : (
-                        <div className="text-sm text-gray-400">No analytics</div>
+                        <div className="text-sm text-slate-400">No analytics</div>
                       )}
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-6">
                   {hasAnalytics ? (
                     <>
-                      <div className="mb-4">
-                        <h4 className="font-semibold text-sm mb-2">AI Summary:</h4>
-                        <p className="text-gray-700 text-sm leading-relaxed">{analytics.ai_summary}</p>
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-slate-900">AI Summary</h4>
+                        <p className="text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-lg border border-slate-200">
+                          {analytics.ai_summary}
+                        </p>
                       </div>
 
                       {/* Analytics Scores */}
-                      <div className="mb-4 grid grid-cols-3 gap-4">
-                        <div className="text-center">
-                          <div className="text-lg font-semibold text-green-600">{Math.round(analytics.relevance_score * 100)}%</div>
-                          <div className="text-xs text-gray-500">Relevance</div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="text-center p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                          <div className="text-2xl font-bold text-emerald-600">{Math.round(analytics.relevance_score * 100)}%</div>
+                          <div className="text-sm text-emerald-700 font-medium mt-1">Relevance</div>
                         </div>
-                        <div className="text-center">
-                          <div className="text-lg font-semibold text-purple-600">{Math.round(analytics.innovation_score * 100)}%</div>
-                          <div className="text-xs text-gray-500">Innovation</div>
+                        <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
+                          <div className="text-2xl font-bold text-purple-600">{Math.round(analytics.innovation_score * 100)}%</div>
+                          <div className="text-sm text-purple-700 font-medium mt-1">Innovation</div>
                         </div>
-                        <div className="text-center">
-                          <div className="text-lg font-semibold text-orange-600">{Math.round(analytics.market_viability * 100)}%</div>
-                          <div className="text-xs text-gray-500">Market Viability</div>
+                        <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
+                          <div className="text-2xl font-bold text-orange-600">{Math.round(analytics.market_viability * 100)}%</div>
+                          <div className="text-sm text-orange-700 font-medium mt-1">Market Viability</div>
                         </div>
                       </div>
 
                       {analytics.tags && analytics.tags.length > 0 && (
-                        <div className="mb-4">
-                          <div className="flex flex-wrap gap-1">
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-slate-900">Tags</h4>
+                          <div className="flex flex-wrap gap-2">
                             {analytics.tags.map((tag: string, index: number) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
+                              <Badge key={index} variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
                                 {tag}
                               </Badge>
                             ))}
@@ -325,29 +328,31 @@ export default function Dashboard() {
                       )}
                     </>
                   ) : (
-                    <div className="mb-4 text-sm text-gray-500 italic">
-                      This post hasn&apos;t been analyzed yet.
+                    <div className="p-6 text-center bg-slate-50 rounded-lg border border-slate-200">
+                      <div className="text-slate-500">This post hasn&apos;t been analyzed yet.</div>
+                      <div className="text-sm text-slate-400 mt-1">Run the Reddit scraper to generate insights</div>
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+                    <div className="flex items-center gap-6 text-slate-600">
+                      <div className="flex items-center gap-2">
                         <ArrowUp className="h-4 w-4" />
-                        {post.upvotes}
+                        <span className="font-medium">{post.upvotes}</span>
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2">
                         <MessageCircle className="h-4 w-4" />
-                        {post.comments}
+                        <span className="font-medium">{post.comments}</span>
                       </div>
                       {hasAnalytics && (
-                        <div className="text-xs text-gray-400">
-                          Analyzed: {formatTimeAgo(analytics.analyzed_at)}
+                        <div className="text-sm text-slate-400">
+                          Analyzed {formatTimeAgo(analytics.analyzed_at)}
                         </div>
                       )}
                     </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={post.url} target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="sm" asChild className="border-slate-200 text-slate-700 hover:bg-slate-50">
+                      <a href={post.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                        <ExternalLink className="h-4 w-4" />
                         View on Reddit
                       </a>
                     </Button>
@@ -360,19 +365,19 @@ export default function Dashboard() {
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
-          <div className="mt-8 flex items-center justify-center gap-4">
+          <div className="mt-12 flex items-center justify-center gap-4">
             <Button
               variant="outline"
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={!pagination.hasPrev || loading}
               size="sm"
+              className="border-slate-200 text-slate-700 hover:bg-slate-50"
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
               Previous
             </Button>
             
             <div className="flex items-center gap-2">
-              {/* Show page numbers */}
               {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                 const pageNumber = Math.max(1, currentPage - 2) + i;
                 if (pageNumber > pagination.totalPages) return null;
@@ -384,7 +389,10 @@ export default function Dashboard() {
                     onClick={() => handlePageChange(pageNumber)}
                     disabled={loading}
                     size="sm"
-                    className="w-10"
+                    className={`w-10 ${pageNumber === currentPage 
+                      ? 'bg-blue-600 hover:bg-blue-700' 
+                      : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
                   >
                     {pageNumber}
                   </Button>
@@ -397,6 +405,7 @@ export default function Dashboard() {
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={!pagination.hasNext || loading}
               size="sm"
+              className="border-slate-200 text-slate-700 hover:bg-slate-50"
             >
               Next
               <ChevronRight className="h-4 w-4 ml-1" />
@@ -406,20 +415,20 @@ export default function Dashboard() {
 
         {/* Pagination Info */}
         {pagination.total > 0 && (
-          <div className="mt-4 text-center text-sm text-gray-600">
+          <div className="mt-6 text-center text-sm text-slate-600">
             Showing {((currentPage - 1) * pagination.limit) + 1} to {Math.min(currentPage * pagination.limit, pagination.total)} of {pagination.total} posts
           </div>
         )}
 
         {/* Empty State */}
-        {filteredPosts.length === 0 && !loading && !error && (
-          <div className="text-center py-12">
-            <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No posts found</h3>
-            <p className="text-gray-600">
+        {posts.length === 0 && !loading && !error && (
+          <div className="text-center py-16 bg-white rounded-xl border border-slate-200">
+            <TrendingUp className="h-16 w-16 text-slate-400 mx-auto mb-6" />
+            <h3 className="text-xl font-semibold text-slate-900 mb-3">No posts found</h3>
+            <p className="text-slate-600 max-w-md mx-auto">
               {pagination.total === 0 
-                ? "No posts have been analyzed yet. Run the Reddit scraper to populate data."
-                : "Try adjusting your search or filters"
+                ? "No posts have been analyzed yet. Run the Reddit scraper to populate data and start discovering startup trends."
+                : "Try adjusting your filters to see more results."
               }
             </p>
           </div>

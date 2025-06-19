@@ -1,7 +1,7 @@
 import { ChatOpenAI } from '@langchain/openai'
 import { PromptTemplate } from '@langchain/core/prompts'
 import { JsonOutputParser } from '@langchain/core/output_parsers'
-import { langsmithAdmin } from './langsmith-admin.js'
+import { langsmithAdmin } from '../../lib/langsmith-admin.js'
 import { loadFallbackPrompt } from './prompt-loader.js'
 import { log } from './logger.js'
 

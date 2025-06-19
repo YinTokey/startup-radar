@@ -6,7 +6,7 @@ import { log } from './lib/logger.js'
 import { getRedditAccessToken, fetchSubredditPosts } from './lib/reddit-api.js'
 import { analyzePost } from './lib/ai-analyzer.js'
 import { savePostToDatabase } from './lib/database.js'
-import { langsmithAdmin } from './lib/langsmith-admin.js'
+import { langsmithAdmin } from '../lib/langsmith-admin.js'
 
 // Main execution function - Clean workflow
 async function main() {

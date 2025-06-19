@@ -190,17 +190,22 @@ export function ChatDialog({ open, onOpenChange }: ChatDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg h-[600px] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-blue-600" />
-            StartupRadar AI Assistant
+      <DialogContent className="sm:max-w-2xl h-[700px] flex flex-col p-0 gap-0 bg-white border-slate-200">
+        <DialogHeader className="p-6 pb-4 border-b border-slate-100">
+          <DialogTitle className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+              <Bot className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <div className="text-lg font-semibold text-slate-900">StartupRadar AI Assistant</div>
+              <div className="text-sm text-slate-500 font-normal">Ask me about startup trends and insights</div>
+            </div>
           </DialogTitle>
         </DialogHeader>
 
         {/* Messages Area */}
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4">
+        <ScrollArea className="flex-1 px-6">
+          <div className="space-y-6 py-4">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -209,34 +214,34 @@ export function ChatDialog({ open, onOpenChange }: ChatDialogProps) {
                 }`}
               >
                 {message.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center flex-shrink-0 mt-1">
                     <Bot className="h-4 w-4 text-blue-600" />
                   </div>
                 )}
                 
                 <div
-                  className={`max-w-[80%] rounded-lg px-3 py-2 ${
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                     message.role === 'user'
                       ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-900'
+                      : 'bg-slate-50 text-slate-900 border border-slate-200'
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs opacity-70">
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className={`text-xs ${message.role === 'user' ? 'text-blue-100' : 'text-slate-400'}`}>
                       {formatTime(message.timestamp)}
                     </span>
                     {message.responseTime && (
-                      <span className="text-xs opacity-70">
-                        ({message.responseTime}ms)
+                      <span className={`text-xs ${message.role === 'user' ? 'text-blue-100' : 'text-slate-400'}`}>
+                        • {message.responseTime}ms
                       </span>
                     )}
                   </div>
                 </div>
 
                 {message.role === 'user' && (
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                    <User className="h-4 w-4 text-gray-600" />
+                  <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0 mt-1">
+                    <User className="h-4 w-4 text-slate-600" />
                   </div>
                 )}
               </div>
@@ -244,13 +249,13 @@ export function ChatDialog({ open, onOpenChange }: ChatDialogProps) {
             
             {isLoading && (
               <div className="flex gap-3 justify-start">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center flex-shrink-0 mt-1">
                   <Bot className="h-4 w-4 text-blue-600" />
                 </div>
-                <div className="bg-gray-100 rounded-lg px-3 py-2">
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm text-gray-600">Thinking...</span>
+                    <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+                    <span className="text-sm text-slate-600">AI is thinking...</span>
                   </div>
                 </div>
               </div>
@@ -261,27 +266,33 @@ export function ChatDialog({ open, onOpenChange }: ChatDialogProps) {
         </ScrollArea>
 
         {/* Input Area */}
-        <div className="flex gap-2 pt-4 border-t">
-          <Input
-            ref={inputRef}
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ask me about startup trends..."
-            disabled={isLoading}
-            className="flex-1"
-          />
-          <Button
-            onClick={sendMessage}
-            disabled={!inputMessage.trim() || isLoading}
-            size="icon"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
+        <div className="p-6 pt-4 border-t border-slate-100 bg-slate-50">
+          <div className="flex gap-3">
+            <Input
+              ref={inputRef}
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Ask me about startup trends, market insights..."
+              disabled={isLoading}
+              className="flex-1 bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+            />
+            <Button
+              onClick={sendMessage}
+              disabled={!inputMessage.trim() || isLoading}
+              size="icon"
+              className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          <div className="text-xs text-slate-500 mt-2 text-center">
+            Press Enter to send • Shift + Enter for new line
+          </div>
         </div>
       </DialogContent>
     </Dialog>
