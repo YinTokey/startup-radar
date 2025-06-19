@@ -29,7 +29,7 @@ export function validateEnvironment() {
 // Configuration object
 export const CONFIG = {
   subreddits: (process.env.SUBREDDITS || 'saas,startups,sideprojects').split(','),
-  postLimit: parseInt(process.env.POST_LIMIT || '5'),
+  postLimit: parseInt(process.env.POST_LIMIT || '25'),
   timeFilter: 'day', // hot posts from last day
   
   // Reddit API credentials

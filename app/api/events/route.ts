@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { revalidateTag } from 'next/cache'
 
 // Use service role key for server-side real-time subscriptions
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -55,6 +56,14 @@ export async function GET(request: NextRequest) {
           (payload) => {
             console.log('SSE: Posts INSERT detected:', payload.new?.id)
             
+            // Trigger ISR revalidation for posts
+            try {
+              revalidateTag('posts')
+              console.log('SSE: Triggered revalidation for posts tag')
+            } catch (error) {
+              console.error('SSE: Error triggering revalidation:', error)
+            }
+            
             const message = `data: ${JSON.stringify({
               type: 'posts_change',
               eventType: 'INSERT',
@@ -79,6 +88,15 @@ export async function GET(request: NextRequest) {
           },
           (payload) => {
             console.log('SSE: Post analytics INSERT detected:', payload.new?.id)
+            
+            // Trigger ISR revalidation for analytics
+            try {
+              revalidateTag('analytics')
+              revalidateTag('posts') // Also revalidate posts since analytics affect the display
+              console.log('SSE: Triggered revalidation for analytics and posts tags')
+            } catch (error) {
+              console.error('SSE: Error triggering revalidation:', error)
+            }
             
             const message = `data: ${JSON.stringify({
               type: 'analytics_change',
