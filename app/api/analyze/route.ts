@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { generateText } from "ai"
-import { openai } from "@ai-sdk/openai"
-import { AISDKExporter } from "langsmith/vercel"
+import { ChatOpenAI } from "@langchain/openai"
+import { PromptTemplate } from "@langchain/core/prompts"
+import { JsonOutputParser } from "@langchain/core/output_parsers"
 import { langsmithAdmin } from "@/lib/langsmith-admin"
 
 export async function POST(request: NextRequest) {
@@ -20,59 +20,69 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No active prompt found" }, { status: 404 })
     }
 
-    // Replace content placeholder in prompt template
-    const processedPrompt = activePrompt.prompt.replace("{content}", postContent)
-
     const startTime = Date.now()
 
-    // Generate analysis using AI SDK with LangSmith telemetry
-    const { text } = await generateText({
-      model: openai("gpt-4o-mini"),
-      prompt: processedPrompt,
-      experimental_telemetry: AISDKExporter.getSettings({
-        runName: `startup-analysis-${activePrompt.metadata.version}`,
-        metadata: {
-          prompt_id: activePrompt.id,
-          prompt_version: activePrompt.metadata.version,
-          subreddit: "startup-analysis",
-        },
-      }),
+    // Create LangChain prompt template
+    const promptTemplate = PromptTemplate.fromTemplate(activePrompt.prompt)
+
+    // Initialize OpenAI model with LangSmith tracking
+    const model = new ChatOpenAI({
+      modelName: "gpt-4.1-nano",
+      temperature: 0.3,
+      maxTokens: 500,
+      metadata: {
+        prompt_id: activePrompt.id,
+        prompt_version: activePrompt.metadata.version,
+        operation: "manual-analysis"
+      },
+      tags: ["manual-analysis", "startup-monitoring", `prompt-${activePrompt.metadata.version}`]
     })
 
-    const endTime = Date.now()
-    const latency = endTime - startTime
+    // Create output parser
+    const parser = new JsonOutputParser()
 
-    // Parse the AI response
+    // Create the chain
+    const chain = promptTemplate.pipe(model).pipe(parser)
+
+    // Execute the chain with LangSmith tracing
     let analysis
     try {
-      analysis = JSON.parse(text)
+      analysis = await chain.invoke({
+        content: postContent
+      })
     } catch {
       // Fallback parsing if JSON is malformed
       analysis = {
-        summary: text.substring(0, 200),
+        summary: postContent.substring(0, 200),
         relevance_score: 0.8,
         sentiment_score: 0.7,
         tags: ["AI Analysis", "Startup"],
       }
     }
 
+    const endTime = Date.now()
+    const latency = endTime - startTime
+
+    // Validate the analysis structure
+    const validatedAnalysis = {
+      summary: analysis.summary || analysis.ai_summary || postContent.substring(0, 200),
+      sentiment_score: typeof analysis.sentiment_score === 'number' ? analysis.sentiment_score : 0.7,
+      relevance_score: typeof analysis.relevance_score === 'number' ? analysis.relevance_score : 0.8,
+      innovation_score: typeof analysis.innovation_score === 'number' ? analysis.innovation_score : 0.5,
+      market_viability: typeof analysis.market_viability === 'number' ? analysis.market_viability : 0.5,
+      tags: Array.isArray(analysis.tags) ? analysis.tags : ["AI Analysis", "Startup"]
+    }
+
     // Track performance metrics in LangSmith
     await langsmithAdmin.submitFeedback(
       `run_${Date.now()}`, // In real implementation, get actual run ID from telemetry
-      analysis.relevance_score * 5, // Convert to 1-5 scale
-      `Automated analysis for prompt ${activePrompt.metadata.version}`,
+      validatedAnalysis.relevance_score * 5, // Convert to 1-5 scale
+      `Manual analysis for prompt ${activePrompt.metadata.version}`,
     )
 
     return NextResponse.json({
       success: true,
-      analysis: {
-        summary: analysis.summary || analysis.ai_summary,
-        sentiment_score: analysis.sentiment_score,
-        relevance_score: analysis.relevance_score,
-        tags: analysis.tags || [],
-        innovation_score: analysis.innovation_score,
-        market_viability: analysis.market_viability,
-      },
+      analysis: validatedAnalysis,
       metadata: {
         prompt_id: activePrompt.id,
         prompt_version: activePrompt.metadata.version,

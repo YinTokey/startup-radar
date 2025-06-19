@@ -2,20 +2,22 @@
   "name": "startup-radar",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "scraper": "node scripts/reddit-scraper.mjs",
-    "scraper:dry-run": "POST_LIMIT=5 node scripts/reddit-scraper.mjs"
+    "scraper:dry-run": "POST_LIMIT=5 node scripts/reddit-scraper.mjs",
+    "test:langsmith": "node scripts/test-langsmith.mjs"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^1.3.22",
+    "@langchain/core": "^0.3.59",
+    "@langchain/openai": "^0.5.13",
     "@radix-ui/react-select": "^2.2.5",
     "@radix-ui/react-slot": "^1.2.3",
     "@supabase/supabase-js": "^2.50.0",
-    "ai": "^4.3.16",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^16.5.0",
